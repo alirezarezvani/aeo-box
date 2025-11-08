@@ -1,0 +1,86 @@
+name: Auto-Create Branch from Issue
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  create-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine branch type from label
+        id: branch-type
+        run: |
+          LABELS="${{ join(github.event.issue.labels.*.name, ',') }}"
+
+          if echo "$LABELS" | grep -q "enhancement"; then
+            echo "type=feature" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "bug"; then
+            echo "type=bugfix" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "documentation"; then
+            echo "type=docs" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "priority-critical"; then
+            echo "type=hotfix" >> $GITHUB_OUTPUT
+          else
+            echo "No relevant label found for branch creation"
+            exit 0
+          fi
+
+      - name: Generate branch name
+        if: steps.branch-type.outputs.type
+        id: branch-name
+        run: |
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          BRANCH_TYPE="${{ steps.branch-type.outputs.type }}"
+
+          # Clean and shorten title for branch name
+          SHORT_DESC=$(echo "$ISSUE_TITLE" | \
+            tr '[:upper:]' '[:lower:]' | \
+            sed 's/[^a-z0-9]/-/g' | \
+            sed 's/--*/-/g' | \
+            sed 's/^-//' | \
+            sed 's/-$//' | \
+            cut -c1-50)
+
+          BRANCH_NAME="${BRANCH_TYPE}/${ISSUE_NUMBER}-${SHORT_DESC}"
+          echo "name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create branch from dev
+        if: steps.branch-name.outputs.name
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch latest dev branch
+          git fetch origin dev
+
+          # Create new branch from dev
+          git checkout -b "${{ steps.branch-name.outputs.name }}" origin/dev
+
+          # Push branch to remote
+          git push origin "${{ steps.branch-name.outputs.name }}"
+
+      - name: Comment on issue
+        if: steps.branch-name.outputs.name
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branchName = '${{ steps.branch-name.outputs.name }}';
+            const comment = `🔀 Branch created: \`${branchName}\`\n\nYou can now work on this issue by checking out the branch:\n\`\`\`bash\ngit fetch origin\ngit checkout ${branchName}\n\`\`\``;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });

@@ -1,0 +1,83 @@
+name: Duplicate Issue Management
+
+on:
+  # Auto-close duplicates - daily at 9am UTC
+  schedule:
+    - cron: "0 9 * * *"
+
+  # Manual triggers
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - 'auto-close-duplicates'
+          - 'backfill-duplicate-comments'
+      days_back:
+        description: 'How many days back to look (backfill only)'
+        required: false
+        default: '90'
+        type: string
+      dry_run:
+        description: 'Dry run mode (true to only log what would be done)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  auto-close-duplicates:
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'auto-close-duplicates')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Auto-close duplicate issues
+        run: bun run scripts/auto-close-duplicates.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPOSITORY_NAME: ${{ github.event.repository.name }}
+          STATSIG_API_KEY: ${{ secrets.STATSIG_API_KEY }}
+
+  backfill-duplicate-comments:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'backfill-duplicate-comments'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: read
+      actions: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Backfill duplicate comments
+        run: bun run scripts/backfill-duplicate-comments.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS_BACK: ${{ inputs.days_back }}
+          DRY_RUN: ${{ inputs.dry_run }}

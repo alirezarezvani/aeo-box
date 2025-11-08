@@ -1,0 +1,92 @@
+name: Branch Protection Check
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  check-protection:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Validate push source
+        id: validate
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          PUSHER="${{ github.actor }}"
+          EVENT_NAME="${{ github.event_name }}"
+
+          echo "Branch: $BRANCH"
+          echo "Pusher: $PUSHER"
+          echo "Event: $EVENT_NAME"
+
+          # Allow pushes from github-actions bot and merge commits
+          if [ "$PUSHER" == "github-actions[bot]" ] || [ "$EVENT_NAME" == "pull_request" ]; then
+            echo "✅ Automated push allowed"
+            exit 0
+          fi
+
+          # For main branch, only allow merges from dev
+          if [ "$BRANCH" == "main" ]; then
+            echo "error=Direct pushes to main are not allowed. Please create a PR from dev branch." >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # For dev branch, warn about direct pushes
+          if [ "$BRANCH" == "dev" ]; then
+            echo "warning=Direct pushes to dev are discouraged. Consider using feature branches and PRs." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create issue for protection violation
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const error = '${{ steps.validate.outputs.error }}';
+            const pusher = '${{ github.actor }}';
+            const branch = '${{ github.ref_name }}';
+            const commitSha = '${{ github.sha }}';
+
+            const issueBody = `## ⚠️ Branch Protection Violation
+
+**Branch:** \`${branch}\`
+**Pusher:** @${pusher}
+**Commit:** \`${commitSha.substring(0, 7)}\`
+
+**Violation:** ${error}
+
+### Correct Workflow:
+1. Create a feature branch: \`git checkout -b feature/123-description\`
+2. Make your changes and commit
+3. Push feature branch: \`git push origin feature/123-description\`
+4. Create PR to \`dev\` branch
+5. After approval, merge to \`dev\`
+6. From \`dev\`, create PR to \`main\`
+
+### Immediate Action Required:
+- Revert this direct push
+- Follow the branch protection workflow
+
+**Note:** Repeated violations may result in restricted repository access.
+`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[VIOLATION] Direct push to ${branch} by ${pusher}`,
+              body: issueBody,
+              labels: ['priority-high', 'invalid']
+            });
+
+      - name: Post warning comment
+        if: steps.validate.outputs.warning
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const warning = '${{ steps.validate.outputs.warning }}';
+            console.log('⚠️ Warning:', warning);

@@ -1,0 +1,121 @@
+name: PR Cleanup Automation
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Delete merged branch
+        if: |
+          github.event.pull_request.head.ref != 'main' &&
+          github.event.pull_request.head.ref != 'dev' &&
+          !github.event.pull_request.head.repo.fork
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+
+          # Only delete feature/bugfix/docs/hotfix branches
+          if [[ "$BRANCH_NAME" =~ ^(feature|bugfix|docs|hotfix)/ ]]; then
+            gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/${{ github.repository }}/git/refs/heads/${BRANCH_NAME}"
+
+            echo "✅ Deleted branch: $BRANCH_NAME"
+          else
+            echo "ℹ️ Branch $BRANCH_NAME is not a feature branch, skipping deletion"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract linked issues
+        id: extract-issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+            const prTitle = context.payload.pull_request.title || '';
+
+            // Extract issue numbers from PR body and title
+            // Supports: Fixes #123, Closes #123, Resolves #123, #123
+            const issueRegex = /(?:fix(?:es|ed)?|close(?:s|d)?|resolve(?:s|d)?)\s*#(\d+)|#(\d+)/gi;
+            const matches = [...prBody.matchAll(issueRegex), ...prTitle.matchAll(issueRegex)];
+
+            const issues = [...new Set(matches.map(m => m[1] || m[2]))];
+
+            console.log('Found linked issues:', issues);
+            return issues;
+
+      - name: Close linked issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = ${{ steps.extract-issues.outputs.result }};
+            const prNumber = context.payload.pull_request.number;
+            const prUrl = context.payload.pull_request.html_url;
+
+            for (const issueNumber of issues) {
+              try {
+                // Check if issue is open
+                const issue = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber
+                });
+
+                if (issue.data.state === 'open') {
+                  // Close the issue
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    state: 'closed'
+                  });
+
+                  // Add closing comment
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `✅ Closed by PR #${prNumber}\n\n${prUrl}`
+                  });
+
+                  console.log(`Closed issue #${issueNumber}`);
+                }
+              } catch (error) {
+                console.error(`Failed to close issue #${issueNumber}:`, error.message);
+              }
+            }
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = '${{ github.event.pull_request.head.ref }}';
+            const issues = ${{ steps.extract-issues.outputs.result }};
+
+            let comment = '🎉 **PR Merged Successfully**\n\n';
+
+            if (branch.match(/^(feature|bugfix|docs|hotfix)\//)) {
+              comment += `✅ Branch \`${branch}\` has been deleted\n`;
+            }
+
+            if (issues.length > 0) {
+              comment += `✅ Closed ${issues.length} linked issue(s): ${issues.map(i => `#${i}`).join(', ')}\n`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
