@@ -16,6 +16,7 @@ from .communication import (
     TaskResult,
 )
 from .agents import BaseAgent
+from .persistence import get_campaign_store, CampaignStore
 
 __all__ = [
     # Version
@@ -35,4 +36,8 @@ __all__ = [
 
     # Agents
     "BaseAgent",
+
+    # Persistence
+    "get_campaign_store",
+    "CampaignStore",
 ]
