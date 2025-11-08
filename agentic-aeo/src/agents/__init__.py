@@ -9,6 +9,7 @@ from .optimizer_agent import OptimizerAgent
 from .citation_tracker_agent import CitationTrackerAgent
 from .researcher_agent import ResearcherAgent
 from .reporter_agent import ReporterAgent
+from .learning_agent import LearningAgent
 
 __all__ = [
     "BaseAgent",
@@ -18,4 +19,5 @@ __all__ = [
     "CitationTrackerAgent",
     "ResearcherAgent",
     "ReporterAgent",
+    "LearningAgent",
 ]
