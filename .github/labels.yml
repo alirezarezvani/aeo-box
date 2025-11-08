@@ -1,0 +1,108 @@
+# AEO Box Custom Labels Configuration
+# This file defines the labels used for issue and PR categorization
+# To apply these labels, use: gh label sync --file .github/labels.yml
+
+# Core Issue Types
+- name: bug
+  color: "d73a4a"
+  description: "Something isn't working as expected"
+
+- name: enhancement
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: documentation
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: model
+  color: "d876e3"
+  description: "Unexpected agent behavior or analysis issues"
+
+# AEO Components
+- name: aeo-skill
+  color: "1d76db"
+  description: "Related to AEO Skill (Content Analysis/Optimization)"
+
+- name: multi-agent
+  color: "5319e7"
+  description: "Multi-Agent System (Orchestrator/Subagents)"
+
+- name: citation-tracking
+  color: "fbca04"
+  description: "Citation tracking and measurement"
+
+- name: query-research
+  color: "0e8a16"
+  description: "Query research and analysis"
+
+- name: report-generation
+  color: "006b75"
+  description: "Report generation and metrics"
+
+- name: adaptive-learning
+  color: "c5def5"
+  description: "Adaptive learning and pattern recognition"
+
+- name: cli-commands
+  color: "d4c5f9"
+  description: "CLI/Command interface"
+
+- name: api-integration
+  color: "e99695"
+  description: "API integration and external services"
+
+# Priority Labels
+- name: priority-critical
+  color: "b60205"
+  description: "Critical - Blocking work"
+
+- name: priority-high
+  color: "d93f0b"
+  description: "High - Significant impact on productivity"
+
+- name: priority-medium
+  color: "fbca04"
+  description: "Medium - Would be very helpful"
+
+- name: priority-low
+  color: "c5def5"
+  description: "Low - Nice to have"
+
+# Status Labels
+- name: status-awaiting-response
+  color: "ededed"
+  description: "Awaiting response from issue author"
+
+- name: status-investigating
+  color: "fef2c0"
+  description: "Currently investigating the issue"
+
+- name: status-in-progress
+  color: "0e8a16"
+  description: "Work is in progress"
+
+- name: status-blocked
+  color: "d73a4a"
+  description: "Blocked by dependencies or external factors"
+
+# Special Labels
+- name: good-first-issue
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: help-wanted
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: duplicate
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+
+- name: invalid
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+- name: wontfix
+  color: "ffffff"
+  description: "This will not be worked on"

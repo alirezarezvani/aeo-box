@@ -1,14 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Discord Community
-    url: https://anthropic.com/discord
-    about: Get help, ask questions, and chat with other Claude Code users
   - name: 📖 Documentation
-    url: https://docs.claude.com/en/docs/claude-code
-    about: Read the official documentation and guides
+    url: https://github.com/alirezarezvani/aeo-box
+    about: Read the project README and documentation
   - name: 🎓 Getting Started Guide
-    url: https://docs.claude.com/en/docs/claude-code/quickstart
-    about: New to Claude Code? Start here
-  - name: 🔧 Troubleshooting Guide
-    url: https://docs.claude.com/en/docs/claude-code/troubleshooting
-    about: Common issues and how to fix them
+    url: https://github.com/alirezarezvani/aeo-box#installation
+    about: New to AEO Box? Start with installation guide
+  - name: 🔧 AEO Skill Configuration
+    url: https://github.com/alirezarezvani/aeo-box#configuration
+    about: Configure AEO analysis and multi-agent system

@@ -1,0 +1,85 @@
+name: PR Branch Enforcement
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  enforce-pr-rules:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Check PR target branch
+        id: check-target
+        run: |
+          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+
+          echo "Target: $TARGET_BRANCH"
+          echo "Source: $SOURCE_BRANCH"
+
+          # Only dev can merge into main
+          if [ "$TARGET_BRANCH" == "main" ] && [ "$SOURCE_BRANCH" != "dev" ]; then
+            echo "error=Only dev branch can create PRs to main" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Feature/bugfix/docs/hotfix branches should target dev
+          if [[ "$SOURCE_BRANCH" =~ ^(feature|bugfix|docs|hotfix)/ ]] && [ "$TARGET_BRANCH" != "dev" ]; then
+            echo "error=Feature branches must target dev branch" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Comment on invalid PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const error = '${{ steps.check-target.outputs.error }}';
+            const comment = `❌ **PR Target Branch Violation**\n\n${error}\n\n**Branch Strategy:**\n- Feature/bugfix/docs/hotfix branches → \`dev\`\n- Only \`dev\` branch → \`main\`\n\nPlease update the target branch of this PR.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+            // Close the PR
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              state: 'closed'
+            });
+
+      - name: Validate PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `✅ **Branch strategy validated**\n\nThis PR follows the repository's branching strategy.`;
+
+            // Check if comment already exists
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const existingComment = comments.data.find(c =>
+              c.body.includes('Branch strategy validated') &&
+              c.user.login === 'github-actions[bot]'
+            );
+
+            if (!existingComment) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

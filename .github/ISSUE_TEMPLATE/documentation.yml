@@ -1,5 +1,5 @@
 name: 📚 Documentation Issue
-description: Report missing, unclear, or incorrect documentation
+description: Report missing, unclear, or incorrect documentation for AEO Box
 title: "[DOCS] "
 labels:
   - documentation
@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         ## Help us improve our documentation!
-        
+
         Good documentation is crucial for a great developer experience. Please let us know what's missing or confusing.
         
   - type: dropdown
@@ -31,8 +31,8 @@ body:
     id: location
     attributes:
       label: Documentation Location
-      description: Where did you encounter this issue? Provide a URL if possible
-      placeholder: "e.g., https://docs.anthropic.com/en/docs/claude-code/getting-started"
+      description: Where did you encounter this issue? Provide a URL or file path if possible
+      placeholder: "e.g., README.md, CLAUDE.md, or documentation folder path"
     validations:
       required: false
       
@@ -41,7 +41,7 @@ body:
     attributes:
       label: Section/Topic
       description: Which specific section or topic needs improvement?
-      placeholder: "e.g., MCP Server Configuration section"
+      placeholder: "e.g., AEO Skill Configuration, Multi-Agent Setup, Citation Tracking"
     validations:
       required: true
       
@@ -50,12 +50,12 @@ body:
     attributes:
       label: Current Documentation
       description: |
-        What does the documentation currently say? 
+        What does the documentation currently say?
         Quote the specific text if applicable.
       placeholder: |
         The docs currently say:
-        "To configure MCP servers, add them to your configuration..."
-        
+        "To configure AEO analysis, set up your content analyzer..."
+
         But it doesn't explain...
     validations:
       required: false
@@ -67,10 +67,10 @@ body:
       description: Explain what's incorrect, unclear, or missing
       placeholder: |
         The documentation doesn't explain how to:
-        - Configure multiple MCP servers
-        - Handle authentication
-        - Debug connection issues
-        
+        - Configure citation tracking for multiple LLMs
+        - Set up the multi-agent orchestrator
+        - Customize query research parameters
+
         The example code doesn't work because...
     validations:
       required: true
@@ -82,13 +82,13 @@ body:
       description: How should the documentation be improved? Provide suggested text if possible
       placeholder: |
         The documentation should include:
-        
-        1. A complete example showing...
-        2. Explanation of common errors like...
-        3. Step-by-step guide for...
-        
+
+        1. A complete example showing how to track citations for ChatGPT and Perplexity
+        2. Explanation of common errors like "citation tracker initialization failed"
+        3. Step-by-step guide for configuring the multi-agent orchestrator
+
         Suggested text:
-        "To configure multiple MCP servers, create an array in your settings..."
+        "To configure citation tracking for multiple LLMs, add them to your configuration..."
     validations:
       required: true
       
