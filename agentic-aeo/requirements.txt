@@ -1,0 +1,29 @@
+# Core dependencies for agentic-aeo v1.5
+# Multi-agent Answer Engine Optimization system
+
+# Claude Agent SDK and API
+anthropic>=0.18.0
+
+# Data validation and serialization
+pydantic>=2.0.0
+
+# Environment configuration
+python-dotenv>=1.0.0
+
+# REST API framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# CLI framework
+click>=8.1.0
+
+# Async file operations
+aiofiles>=23.2.0
+
+# HTTP client for LLM API calls
+httpx>=0.26.0
+
+# Optional: AEO Skill dependencies (install separately if needed)
+# beautifulsoup4>=4.12.0
+# requests>=2.31.0
+# markdown>=3.5.0
