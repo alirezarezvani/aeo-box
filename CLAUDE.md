@@ -34,11 +34,14 @@ aeo-suite/
    - Self-contained (uses only Python stdlib, optional dependencies for enhanced features)
    - Data stored locally in `.aeo-data/` directory
 
-2. **Multi-Agent AEO System** (planned, spec in `aeo-agentic-app-master-prompt.md`)
+2. **Multi-Agent AEO System** (v1.5 - in development, see [Sprint Plan](documentation/delivery/sprint-plan-v1.5.md))
    - Orchestrator agent coordinating 6 specialized subagents
    - FastAPI REST API + CLI interface
    - Hybrid deployment model (CLI + Web API)
    - JSON + Markdown communication protocol between agents
+   - **Status**: Sprint planning complete (2025-01-08)
+   - **Timeline**: 14-16 working days (4 sprints)
+   - **Primary Spec**: [aeo-agentic-app-master-prompt.md](aeo-agentic-app-master-prompt.md)
 
 ### AEO Skill Modules
 
@@ -114,9 +117,38 @@ All AEO data stored locally in `.aeo-data/`:
 └── success_patterns.json        # Adaptive learning data
 ```
 
-## Multi-Agent System (Planned)
+## v1.5 Multi-Agent System Development
 
-Specification in `aeo-agentic-app-master-prompt.md`:
+**Status**: Sprint planning complete - Ready for implementation
+**Sprint Plan**: [documentation/delivery/sprint-plan-v1.5.md](documentation/delivery/sprint-plan-v1.5.md)
+**Primary Spec**: [aeo-agentic-app-master-prompt.md](aeo-agentic-app-master-prompt.md)
+**Timeline**: 14-16 working days (4 sprints, 112-128 hours)
+**Current Sprint**: Not started (planning phase complete)
+
+### Sprint Breakdown
+
+| Sprint | Duration | Focus | Status |
+|--------|----------|-------|--------|
+| **Sprint 1** | 4 days (32h) | Foundation - Orchestrator + communication | 📋 Planned |
+| **Sprint 2** | 4 days (32h) | 6 specialized agents | 📋 Planned |
+| **Sprint 3** | 3 days (24h) | 3 workflows + CLI + API | 📋 Planned |
+| **Sprint 4** | 3-5 days (24-40h) | Testing + production polish | 📋 Planned |
+
+### Next Steps
+
+1. Review comprehensive sprint plan: [sprint-plan-v1.5.md](documentation/delivery/sprint-plan-v1.5.md)
+2. Begin Sprint 1, Day 1: Create `agentic-aeo/` directory structure
+3. Follow detailed task breakdown in sprint plan
+4. Update this section after each sprint completion
+5. Keep documentation/ as living structure (update after major changes)
+
+### Implementation Principles
+
+- **Follow sprint plan sequentially** - Tasks have dependencies
+- **Maintain >80% test coverage** - Write tests alongside code
+- **Update docs as living structure** - Keep README.md, CLAUDE.md, and documentation/ current
+- **Commit frequently** - After each major task completion
+- **Reference spec constantly** - aeo-agentic-app-master-prompt.md is source of truth
 
 ### Agent Architecture
 
