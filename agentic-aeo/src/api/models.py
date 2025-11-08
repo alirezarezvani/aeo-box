@@ -83,13 +83,53 @@ class CampaignResponse(BaseModel):
 
 class CampaignStatusResponse(BaseModel):
     """Campaign status and results"""
-    campaign_id: str
-    status: WorkflowStatus
-    created_at: datetime
-    completed_at: Optional[datetime] = None
-    progress: Dict[str, Any] = Field(default_factory=dict)
-    results: Optional[Dict[str, Any]] = None
-    errors: List[str] = Field(default_factory=list)
+    campaign_id: str = Field(..., description="Unique campaign identifier")
+    status: WorkflowStatus = Field(..., description="Current workflow status")
+    created_at: datetime = Field(..., description="Campaign creation timestamp")
+    completed_at: Optional[datetime] = Field(None, description="Completion timestamp if finished")
+    progress: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Progress tracking with task completion percentage"
+    )
+    results: Optional[Dict[str, Any]] = Field(None, description="Workflow results if completed")
+    errors: List[str] = Field(default_factory=list, description="Error messages if any")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "campaign_id": "campaign_20250108_001",
+                "status": "completed",
+                "created_at": "2025-01-08T10:30:00Z",
+                "completed_at": "2025-01-08T12:15:00Z",
+                "progress": {
+                    "total_tasks": 8,
+                    "completed_tasks": 8,
+                    "completion_percentage": 100,
+                    "tasks": {
+                        "audit": "completed",
+                        "research": "completed",
+                        "optimize": "completed",
+                        "tracking": "completed",
+                        "report": "completed"
+                    }
+                },
+                "results": {
+                    "workflow_state": {
+                        "status": "completed",
+                        "total_tasks": 8,
+                        "completed_tasks": 8
+                    },
+                    "task_results": [
+                        {
+                            "task_type": "audit",
+                            "status": "completed",
+                            "summary": "E-E-A-T audit completed with 7/10 score"
+                        }
+                    ]
+                },
+                "errors": []
+            }
+        }
 
 
 # Competitive Analysis Models
@@ -122,10 +162,20 @@ class CompetitiveAnalysisRequest(BaseModel):
 
 class CompetitiveAnalysisResponse(BaseModel):
     """Response after creating competitive analysis"""
-    analysis_id: str
-    status: WorkflowStatus
-    created_at: datetime
-    message: str
+    analysis_id: str = Field(..., description="Unique analysis identifier")
+    status: WorkflowStatus = Field(..., description="Current analysis status")
+    created_at: datetime = Field(..., description="Analysis creation timestamp")
+    message: str = Field(..., description="Status message")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "analysis_id": "analysis_20250108_002",
+                "status": "running",
+                "created_at": "2025-01-08T11:00:00Z",
+                "message": "Competitive analysis started. Check status at /api/status/{analysis_id}"
+            }
+        }
 
 
 # Monitoring Models
@@ -157,20 +207,40 @@ class MonitoringSetupRequest(BaseModel):
 
 class MonitoringSetupResponse(BaseModel):
     """Response after setting up monitoring"""
-    monitor_id: str
-    status: WorkflowStatus
-    created_at: datetime
-    message: str
+    monitor_id: str = Field(..., description="Unique monitoring identifier")
+    status: WorkflowStatus = Field(..., description="Current monitoring status")
+    created_at: datetime = Field(..., description="Monitoring setup timestamp")
+    message: str = Field(..., description="Status message")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "monitor_id": "monitor_20250108_003",
+                "status": "running",
+                "created_at": "2025-01-08T11:30:00Z",
+                "message": "Monitoring setup started. Check status at /api/status/{monitor_id}"
+            }
+        }
 
 
 # Health Check Models
 
 class HealthCheckResponse(BaseModel):
     """API health check response"""
-    status: str = Field("healthy", description="API health status")
+    status: str = Field("healthy", description="API health status (healthy/degraded/unhealthy)")
     version: str = Field("1.5.0", description="API version")
-    timestamp: datetime = Field(default_factory=datetime.now)
-    agents_registered: int = Field(0, description="Number of registered agents")
+    timestamp: datetime = Field(default_factory=datetime.now, description="Current server timestamp")
+    agents_registered: int = Field(0, description="Number of registered agents in orchestrator")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "status": "healthy",
+                "version": "1.5.0",
+                "timestamp": "2025-01-08T12:00:00Z",
+                "agents_registered": 6
+            }
+        }
 
 
 # Error Models
