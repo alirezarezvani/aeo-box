@@ -137,6 +137,58 @@ All AEO data stored locally in `.aeo-data/`:
 
 **Note**: 0.5 day contingency buffer available (total capacity: 16 days)
 
+### Planning Documents Reference
+
+**PRIMARY EXECUTION PLAN** (use daily for implementation):
+
+- **[sprint-plan-v1.5.md](documentation/delivery/sprint-plan-v1.5.md)** - Main execution blueprint
+  - 16 working days broken down by day and hour
+  - Day-by-day task breakdown with estimates
+  - 38 specific Definition of Done checkboxes
+  - Technology stack and implementation guidelines
+  - **When to use**: Every day during implementation - this is your single source of truth
+
+**SUPPORTING DOCUMENTS** (reference as needed):
+
+- **[user-validation-plan.md](documentation/testing/user-validation-plan.md)** - User testing procedures
+  - 3 validation checkpoints (Sprints 2, 3, 4)
+  - Test scenarios and success criteria
+  - Participant recruitment ($1,850 budget)
+  - **When to use**: End of Sprint 2 (Day 8), Sprint 3 (Day 11.5), Sprint 4 (Day 16)
+
+- **[success-metrics-tracking.md](documentation/delivery/success-metrics-tracking.md)** - Metrics tracking
+  - Sprint-level metrics (processing time, workflow time, coverage)
+  - PRD success metrics (WAU, retention, engagement)
+  - User value metrics (time savings: 2-3 hours → <5 min)
+  - Cost optimization tracking (95%+ savings target)
+  - **When to use**: Track metrics throughout development, report at sprint ends
+
+- **[sprint-refinement-action-plan.md](documentation/delivery/sprint-refinement-action-plan.md)** - Refinement summary
+  - How we refined the plan (meta-document)
+  - 6 critical actions and completion status
+  - Consolidated findings from 3 agents
+  - **When to use**: Reference only if questions about plan changes arise
+
+- **[product-validation-v1.5.md](documentation/delivery/product-validation-v1.5.md)** - Product Owner assessment
+  - 32 user stories in standard format
+  - Requirements gap analysis
+  - 59-page comprehensive validation
+  - **When to use**: Reference for user story context and requirements traceability
+
+- **[project-management-assessment-v1.5.md](documentation/delivery/project-management-assessment-v1.5.md)** - PM analysis
+  - Sprint structure validation
+  - Risk assessment (6 risks identified)
+  - Timeline commitment analysis
+  - **When to use**: Reference for project management decisions and risk mitigation
+
+**TECHNICAL SPECIFICATION**:
+
+- **[aeo-agentic-app-master-prompt.md](aeo-agentic-app-master-prompt.md)** - Complete system spec
+  - Agent specifications (lines 94-441)
+  - Workflow definitions (lines 444-555)
+  - Communication protocol (lines 557-651)
+  - **When to use**: Reference constantly during implementation for technical details
+
 ### Next Steps
 
 1. Review comprehensive sprint plan: [sprint-plan-v1.5.md](documentation/delivery/sprint-plan-v1.5.md)
