@@ -1,0 +1,27 @@
+# Answer Engine Optimization (AEO) Skill - Python Dependencies
+# Install with: pip3 install -r requirements.txt
+
+# Core dependencies (required)
+# No external dependencies for core functionality!
+# The skill uses Python standard library only for maximum compatibility
+
+# Optional dependencies for enhanced features
+# Uncomment and install if you want additional capabilities:
+
+# requests>=2.31.0           # For HTTP requests (alternative to Claude's WebFetch)
+# beautifulsoup4>=4.12.0     # For HTML parsing
+# markdown>=3.5.0            # For advanced markdown processing
+# python-dateutil>=2.8.2     # For date handling
+
+# API client libraries (optional - only if using external APIs)
+# anthropic>=0.25.0          # For Claude API (content analysis)
+# openai>=1.12.0             # For OpenAI API (content analysis)
+
+# Data analysis (optional - for advanced analytics)
+# pandas>=2.0.0              # For data manipulation
+# matplotlib>=3.7.0          # For visualization
+# seaborn>=0.12.0            # For statistical plots
+
+# Note: The skill is designed to work with ZERO external dependencies
+# using only Python standard library + Claude Code's built-in capabilities.
+# Install optional dependencies only if you need specific enhanced features.
