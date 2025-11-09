@@ -4,17 +4,23 @@ AEO Multi-Agent REST API
 FastAPI server providing programmatic access to AEO workflows.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 import sys
+import os
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.models import HealthCheckResponse, ErrorResponse
 from api.routes import campaigns, status
+from utils.logging import get_logger
+
+# Initialize API logger
+logger = get_logger("api")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -25,6 +31,15 @@ app = FastAPI(
 This API provides programmatic access to comprehensive AEO workflows powered by a
 multi-agent system. Optimize your content for AI-powered answer engines like ChatGPT,
 Claude, Perplexity, and Gemini.
+
+### ⚠️ IMPORTANT: Data Persistence Limitation
+
+**IN-MEMORY STORAGE ONLY**: Workflow status is stored in memory and will be LOST on API restart.
+For production deployments requiring persistence, use the CampaignStore filesystem storage
+(available in CLI mode) or migrate to a database (planned v1.6).
+
+**Impact**: After restarting the API server, you cannot recover in-progress campaigns.
+Complete campaigns are saved to `.aeo-agent-data/` but the API cannot query them.
 
 ### Features
 
@@ -79,38 +94,68 @@ and retrieve results.
     ]
 )
 
-# Configure CORS
+# Configure CORS with explicit allowed origins (security fix)
+# Read from environment variable or use secure localhost default
+cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080")
+allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allowed_origins,  # Explicit origins only (no wildcard)
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],  # Explicit methods
+    allow_headers=["Content-Type", "Authorization"],  # Explicit headers
 )
 
 
 # Exception handler
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    """Handle HTTP exceptions"""
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Handle HTTP exceptions with secure error logging"""
+    error_id = str(uuid.uuid4())
+
+    # Log full details internally
+    logger.error(
+        "HTTP exception occurred",
+        error_id=error_id,
+        status_code=exc.status_code,
+        request_path=request.url.path,
+        request_method=request.method,
+        detail=exc.detail,
+    )
+
+    # Return safe error message to user (no internal details)
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
-            error=exc.detail,
-            detail=str(exc),
+            error=exc.detail if exc.status_code < 500 else "Internal server error",
+            detail=f"Error ID: {error_id}",
             timestamp=datetime.now()
         ).dict()
     )
 
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    """Handle general exceptions"""
+async def general_exception_handler(request: Request, exc: Exception):
+    """Handle general exceptions with secure error logging"""
+    error_id = str(uuid.uuid4())
+
+    # Log full exception details internally (with stack trace)
+    logger.error(
+        "Unhandled exception occurred",
+        exc_info=True,
+        error_id=error_id,
+        request_path=request.url.path,
+        request_method=request.method,
+        exception_type=type(exc).__name__,
+    )
+
+    # Return generic error message to user (NO internal details or stack traces)
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
             error="Internal server error",
-            detail=str(exc),
+            detail=f"An unexpected error occurred. Error ID: {error_id}",
             timestamp=datetime.now()
         ).dict()
     )

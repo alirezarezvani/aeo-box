@@ -33,10 +33,28 @@ from workflows.campaign_workflow import CampaignWorkflow
 from workflows.competitive_workflow import CompetitiveWorkflow
 from workflows.monitoring_workflow import MonitoringWorkflow
 from communication.protocol import AgentType
+from utils.logging import get_logger
 
 router = APIRouter()
 
-# In-memory storage for campaign status (would use database in production)
+# Initialize logger for campaign routes
+logger = get_logger("api.campaigns")
+
+# ⚠️ CRITICAL DATA LOSS RISK: In-memory storage for campaign status
+# This dictionary stores ALL workflow state in memory. ALL campaign data is lost on:
+# - API server restart
+# - Process crash
+# - Container restart
+# - Server reboot
+#
+# PRODUCTION IMPACT:
+# - Users cannot recover in-progress campaigns after restart
+# - No persistence between deployments
+# - No failover or high availability possible
+#
+# MIGRATION PATH (v1.6):
+# Replace with persistent storage (PostgreSQL, Redis, or CampaignStore)
+# For now, this is DOCUMENTED LIMITATION in README.md and API docs
 campaigns_store: Dict[str, Dict] = {}
 
 
@@ -85,6 +103,15 @@ async def run_campaign_workflow(campaign_id: str, request: CampaignCreateRequest
         }
 
     except Exception as e:
+        # Log the error with full details for debugging
+        logger.error(
+            "Campaign workflow execution failed",
+            exc_info=True,
+            campaign_id=campaign_id,
+            url=request.url,
+            mode=request.mode.value,
+            exception_type=type(e).__name__,
+        )
         campaigns_store[campaign_id]["status"] = WorkflowStatus.failed
         campaigns_store[campaign_id]["errors"] = [str(e)]
         campaigns_store[campaign_id]["completed_at"] = datetime.now()
@@ -165,6 +192,15 @@ async def run_competitive_workflow(analysis_id: str, request: CompetitiveAnalysi
         }
 
     except Exception as e:
+        # Log the error with full details for debugging
+        logger.error(
+            "Competitive analysis workflow execution failed",
+            exc_info=True,
+            analysis_id=analysis_id,
+            topic=request.topic,
+            competitor_count=len(request.competitor_urls),
+            exception_type=type(e).__name__,
+        )
         campaigns_store[analysis_id]["status"] = WorkflowStatus.failed
         campaigns_store[analysis_id]["errors"] = [str(e)]
         campaigns_store[analysis_id]["completed_at"] = datetime.now()
@@ -239,6 +275,16 @@ async def run_monitoring_workflow(monitor_id: str, request: MonitoringSetupReque
         }
 
     except Exception as e:
+        # Log the error with full details for debugging
+        logger.error(
+            "Monitoring workflow execution failed",
+            exc_info=True,
+            monitor_id=monitor_id,
+            url=str(request.url),
+            duration_days=request.duration_days,
+            query_count=len(request.queries),
+            exception_type=type(e).__name__,
+        )
         campaigns_store[monitor_id]["status"] = WorkflowStatus.failed
         campaigns_store[monitor_id]["errors"] = [str(e)]
         campaigns_store[monitor_id]["completed_at"] = datetime.now()

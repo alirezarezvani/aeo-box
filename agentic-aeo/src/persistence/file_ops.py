@@ -9,8 +9,8 @@ import fcntl
 import json
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional
-from datetime import datetime
+from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
 
 
 class AtomicFileWriter:
@@ -193,8 +193,8 @@ class AtomicFileWriter:
     def read_jsonl(
         self,
         file_path: Path,
-        default: Optional[list] = None,
-    ) -> list[Dict[str, Any]]:
+        default: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Read all lines from JSONL file.
 
@@ -292,8 +292,8 @@ def append_to_jsonl(file_path: Path, data: Dict[str, Any], **kwargs) -> None:
 
 def read_jsonl(
     file_path: Path,
-    default: Optional[list] = None,
-) -> list[Dict[str, Any]]:
+    default: Optional[List[Dict[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
     """Read JSONL file (convenience function)"""
     return file_writer.read_jsonl(file_path, default)
 
@@ -309,7 +309,7 @@ if __name__ == "__main__":
     test_data = {
         "campaign_id": "camp_123",
         "status": "in_progress",
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
         "tasks": ["task_1", "task_2"],
     }
 

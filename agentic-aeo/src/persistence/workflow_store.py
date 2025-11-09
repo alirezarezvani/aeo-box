@@ -7,7 +7,7 @@ Provides storage and retrieval of reusable workflow configurations.
 
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..communication.protocol import WorkflowState
 from ..utils.config import get_config
@@ -92,8 +92,8 @@ class WorkflowStore:
             "name": workflow_name,
             "version": version,
             "template": template,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
         write_json(template_file, template_data)
@@ -268,7 +268,7 @@ class WorkflowStore:
 
         for state_file in self.active_dir.glob("*_state.json"):
             try:
-                file_age = datetime.utcnow().timestamp() - state_file.stat().st_mtime
+                file_age = datetime.now(timezone.utc).timestamp() - state_file.stat().st_mtime
 
                 if file_age > max_age_seconds:
                     state_file.unlink()

@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from workflows.campaign_workflow import CampaignWorkflow
 from workflows.competitive_workflow import CompetitiveWorkflow
 from workflows.monitoring_workflow import MonitoringWorkflow
-from communication.protocol import AgentType, TaskStatus
+from communication.protocol import AgentType, TaskStatus, TaskType
 
 
 class TestCampaignWorkflow:
@@ -32,6 +32,7 @@ class TestCampaignWorkflow:
     def test_decompose_minimal_mode(self, workflow):
         """Test task decomposition for minimal mode."""
         tasks = workflow.decompose(
+            campaign_id="test_campaign_minimal",
             url="https://example.com/article",
             mode="minimal"
         )
@@ -39,13 +40,19 @@ class TestCampaignWorkflow:
         # Minimal mode should have 5 tasks (no learning agent)
         assert len(tasks) == 5
 
+        # Verify protocol compliance (Issue #1)
+        for task in tasks:
+            assert task.campaign_id == "test_campaign_minimal", f"Task {task.task_id} missing campaign_id"
+            assert task.task_type is not None, f"Task {task.task_id} missing task_type"
+            assert isinstance(task.task_type, TaskType), f"Task {task.task_id} has invalid task_type"
+
         # Verify all required agent types present
         agent_types = {t.agent_type for t in tasks}
         expected_types = {
             AgentType.AUDITOR,
             AgentType.RESEARCHER,
             AgentType.OPTIMIZER,
-            AgentType.CITATION_TRACKER,
+            AgentType.TRACKER,
             AgentType.REPORTER
         }
         assert agent_types == expected_types
@@ -53,6 +60,7 @@ class TestCampaignWorkflow:
     def test_decompose_comprehensive_mode(self, workflow):
         """Test task decomposition for comprehensive mode."""
         tasks = workflow.decompose(
+            campaign_id="test_campaign_comprehensive",
             url="https://example.com/article",
             mode="comprehensive"
         )
@@ -60,37 +68,37 @@ class TestCampaignWorkflow:
         # Comprehensive mode should have 6 tasks (includes learning)
         assert len(tasks) == 6
 
+        # Verify protocol compliance (Issue #1)
+        for task in tasks:
+            assert task.campaign_id == "test_campaign_comprehensive", f"Task {task.task_id} missing campaign_id"
+            assert task.task_type is not None, f"Task {task.task_id} missing task_type"
+
         # Verify learning agent included
         agent_types = {t.agent_type for t in tasks}
         assert AgentType.LEARNING in agent_types
 
     def test_task_priorities(self, workflow):
-        """Test tasks have correct priorities."""
+        """Test tasks have correct agent types and dependencies."""
         tasks = workflow.decompose(
+            campaign_id="test_campaign_priorities",
             url="https://example.com/article",
             mode="balanced"
         )
 
-        # Priority 1: audit + research (parallel)
-        priority_1_tasks = [t for t in tasks if t.priority == 1]
-        assert len(priority_1_tasks) == 2
-        agent_types_p1 = {t.agent_type for t in priority_1_tasks}
-        assert agent_types_p1 == {AgentType.AUDITOR, AgentType.RESEARCHER}
+        # Find report task and verify it has dependencies
+        reporter_task = next((t for t in tasks if t.agent_type == AgentType.REPORTER), None)
+        assert reporter_task is not None, "Reporter task should exist"
+        assert len(reporter_task.dependencies) == 4, "Reporter should depend on 4 previous tasks"
 
-        # Priority 2: optimize (depends on audit)
-        priority_2_tasks = [t for t in tasks if t.priority == 2]
-        assert len(priority_2_tasks) == 1
-        assert priority_2_tasks[0].agent_type == AgentType.OPTIMIZER
-
-        # Priority 4: report (depends on all)
-        priority_4_tasks = [t for t in tasks if t.priority == 4]
-        assert len(priority_4_tasks) == 1
-        assert priority_4_tasks[0].agent_type == AgentType.REPORTER
-        assert len(priority_4_tasks[0].depends_on) == 4
+        # Find optimizer task and verify it has dependencies on audit
+        optimizer_task = next((t for t in tasks if t.agent_type == AgentType.OPTIMIZER), None)
+        assert optimizer_task is not None, "Optimizer task should exist"
+        assert len(optimizer_task.dependencies) > 0, "Optimizer should have dependencies"
 
     def test_task_dependencies(self, workflow):
         """Test tasks have correct dependencies."""
         tasks = workflow.decompose(
+            campaign_id="test_campaign_dependencies",
             url="https://example.com/article",
             mode="balanced"
         )
@@ -100,7 +108,7 @@ class TestCampaignWorkflow:
         optimizer_task = next(t for t in tasks if t.agent_type == AgentType.OPTIMIZER)
 
         # Optimizer should depend on audit
-        assert audit_task.task_id in optimizer_task.depends_on
+        assert audit_task.task_id in optimizer_task.dependencies
 
     def test_validate_input_valid(self, workflow):
         """Test input validation with valid input."""
@@ -149,6 +157,7 @@ class TestCompetitiveWorkflow:
     def test_decompose_with_competitors(self, workflow):
         """Test task decomposition with 3 competitors."""
         tasks = workflow.decompose(
+            campaign_id="test_compete_3competitors",
             topic="project management",
             competitor_urls=[
                 "https://competitor1.com",
@@ -160,6 +169,11 @@ class TestCompetitiveWorkflow:
         # Should have: 1 research + 3 audits + 1 citations + 1 gap + 1 report = 7
         assert len(tasks) == 7
 
+        # Verify protocol compliance (Issue #1)
+        for task in tasks:
+            assert task.campaign_id == "test_compete_3competitors", f"Task {task.task_id} missing campaign_id"
+            assert task.task_type is not None, f"Task {task.task_id} missing task_type"
+
         # Verify audit tasks for each competitor
         audit_tasks = [t for t in tasks if t.agent_type == AgentType.AUDITOR]
         assert len(audit_tasks) == 3
@@ -169,35 +183,40 @@ class TestCompetitiveWorkflow:
         competitor_urls = [f"https://competitor{i}.com" for i in range(10)]
 
         tasks = workflow.decompose(
+            campaign_id="test_compete_limit",
             topic="test topic",
             competitor_urls=competitor_urls
         )
+
+        # Verify protocol compliance (Issue #1)
+        for task in tasks:
+            assert task.campaign_id == "test_compete_limit", f"Task {task.task_id} missing campaign_id"
+            assert task.task_type is not None, f"Task {task.task_id} missing task_type"
 
         # Should only create 5 audit tasks
         audit_tasks = [t for t in tasks if t.agent_type == AgentType.AUDITOR]
         assert len(audit_tasks) == 5
 
     def test_task_priorities(self, workflow):
-        """Test tasks have correct priorities."""
+        """Test tasks have correct agent types and dependencies."""
         tasks = workflow.decompose(
+            campaign_id="test_compete_priorities",
             topic="test",
             competitor_urls=["https://comp1.com", "https://comp2.com"]
         )
 
-        # Priority 1: research
-        priority_1 = [t for t in tasks if t.priority == 1]
-        assert len(priority_1) == 1
-        assert priority_1[0].agent_type == AgentType.RESEARCHER
+        # Verify researcher task exists
+        researcher_tasks = [t for t in tasks if t.agent_type == AgentType.RESEARCHER]
+        assert len(researcher_tasks) > 0, "Researcher task should exist"
 
-        # Priority 2: audits (parallel)
-        priority_2 = [t for t in tasks if t.priority == 2]
-        assert len(priority_2) == 2
-        assert all(t.agent_type == AgentType.AUDITOR for t in priority_2)
+        # Verify audits (parallel)
+        auditor_tasks = [t for t in tasks if t.agent_type == AgentType.AUDITOR]
+        assert len(auditor_tasks) == 2, "Should have 2 auditor tasks"
 
-        # Priority 5: report (final)
-        priority_5 = [t for t in tasks if t.priority == 5]
-        assert len(priority_5) == 1
-        assert priority_5[0].agent_type == AgentType.REPORTER
+        # Verify report task and its dependencies
+        reporter_tasks = [t for t in tasks if t.agent_type == AgentType.REPORTER]
+        assert len(reporter_tasks) == 1, "Should have 1 reporter task"
+        assert len(reporter_tasks[0].dependencies) > 0, "Reporter should have dependencies"
 
     def test_validate_input_valid(self, workflow):
         """Test input validation with valid input."""
@@ -246,6 +265,7 @@ class TestMonitoringWorkflow:
     def test_decompose_basic(self, workflow):
         """Test task decomposition."""
         tasks = workflow.decompose(
+            campaign_id="test_monitor_basic",
             url="https://example.com/article",
             duration_days=30
         )
@@ -253,37 +273,41 @@ class TestMonitoringWorkflow:
         # Should have 3 tasks: baseline audit, setup tracking, initial report
         assert len(tasks) == 3
 
+        # Verify protocol compliance (Issue #1)
+        for task in tasks:
+            assert task.campaign_id == "test_monitor_basic", f"Task {task.task_id} missing campaign_id"
+            assert task.task_type is not None, f"Task {task.task_id} missing task_type"
+
         # Verify agent types
         agent_types = {t.agent_type for t in tasks}
         expected_types = {
             AgentType.AUDITOR,
-            AgentType.CITATION_TRACKER,
+            AgentType.TRACKER,
             AgentType.REPORTER
         }
         assert agent_types == expected_types
 
     def test_task_priorities(self, workflow):
-        """Test tasks have correct priorities."""
+        """Test tasks have correct agent types and dependencies."""
         tasks = workflow.decompose(
+            campaign_id="test_monitor_priorities",
             url="https://example.com",
             duration_days=90
         )
 
-        # Priority 1: baseline audit
-        priority_1 = [t for t in tasks if t.priority == 1]
-        assert len(priority_1) == 1
-        assert priority_1[0].agent_type == AgentType.AUDITOR
+        # Verify baseline audit task exists
+        auditor_tasks = [t for t in tasks if t.agent_type == AgentType.AUDITOR]
+        assert len(auditor_tasks) == 1, "Should have 1 auditor task"
 
-        # Priority 2: tracking setup (depends on audit)
-        priority_2 = [t for t in tasks if t.priority == 2]
-        assert len(priority_2) == 1
-        assert priority_2[0].agent_type == AgentType.CITATION_TRACKER
+        # Verify tracking setup task exists and has dependencies
+        tracker_tasks = [t for t in tasks if t.agent_type == AgentType.TRACKER]
+        assert len(tracker_tasks) == 1, "Should have 1 tracker task"
+        assert len(tracker_tasks[0].dependencies) > 0, "Tracker should have dependencies"
 
-        # Priority 3: initial report (depends on both)
-        priority_3 = [t for t in tasks if t.priority == 3]
-        assert len(priority_3) == 1
-        assert priority_3[0].agent_type == AgentType.REPORTER
-        assert len(priority_3[0].depends_on) == 2
+        # Verify initial report task exists and depends on both
+        reporter_tasks = [t for t in tasks if t.agent_type == AgentType.REPORTER]
+        assert len(reporter_tasks) == 1, "Should have 1 reporter task"
+        assert len(reporter_tasks[0].dependencies) == 2, "Reporter should depend on 2 tasks"
 
     def test_validate_input_valid(self, workflow):
         """Test input validation with valid input."""

@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from communication.protocol import TaskMessage, AgentType
+from communication.protocol import TaskMessage, AgentType, TaskType
 
 
 class MonitoringWorkflow:
@@ -34,6 +34,7 @@ class MonitoringWorkflow:
 
     def decompose(
         self,
+        campaign_id: str,
         url: str,
         duration_days: int = 90,
         queries: Optional[List[str]] = None,
@@ -44,6 +45,7 @@ class MonitoringWorkflow:
         Decompose monitoring workflow into tasks.
 
         Args:
+            campaign_id: Unique campaign identifier
             url: URL to monitor
             duration_days: Monitoring duration (default: 90 days)
             queries: Specific queries to track (optional)
@@ -59,6 +61,8 @@ class MonitoringWorkflow:
         # Task 1: Initial Baseline Audit (priority 1)
         tasks.append(TaskMessage(
             task_id=f"baseline_audit_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.AUDIT_CONTENT,
             agent_type=AgentType.AUDITOR,
             input_data={
                 "url": url,
@@ -67,15 +71,15 @@ class MonitoringWorkflow:
                     "duration_days": duration_days
                 }
             },
-            priority=1,
-            depends_on=[],
-            deadline=datetime.now() + timedelta(minutes=5)
+            dependencies=[],
         ))
 
         # Task 2: Set up Citation Tracking (priority 2, depends on audit)
         tasks.append(TaskMessage(
             task_id=f"setup_tracking_{timestamp}",
-            agent_type=AgentType.CITATION_TRACKER,
+            campaign_id=campaign_id,
+            task_type=TaskType.TRACK_CITATIONS,
+            agent_type=AgentType.TRACKER,
             input_data={
                 "url": url,
                 "queries": queries or [],
@@ -84,14 +88,14 @@ class MonitoringWorkflow:
                 "alert_on_changes": alert_on_changes,
                 "check_frequency": "daily"
             },
-            priority=2,
-            depends_on=[f"baseline_audit_{timestamp}"],
-            deadline=datetime.now() + timedelta(minutes=8)
+            dependencies=[f"baseline_audit_{timestamp}"],
         ))
 
         # Task 3: Initial Monitoring Report (priority 3)
         tasks.append(TaskMessage(
             task_id=f"initial_report_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.GENERATE_REPORT,
             agent_type=AgentType.REPORTER,
             input_data={
                 "report_type": "monitoring_setup",
@@ -104,9 +108,7 @@ class MonitoringWorkflow:
                     "weekly_reports": weekly_reports
                 }
             },
-            priority=3,
-            depends_on=[f"baseline_audit_{timestamp}", f"setup_tracking_{timestamp}"],
-            deadline=datetime.now() + timedelta(minutes=10)
+            dependencies=[f"baseline_audit_{timestamp}", f"setup_tracking_{timestamp}"],
         ))
 
         return tasks

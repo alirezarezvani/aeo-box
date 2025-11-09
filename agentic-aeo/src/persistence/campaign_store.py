@@ -8,7 +8,7 @@ campaign-based directory organization with atomic file operations.
 import uuid
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..communication.protocol import (
     CampaignManifest,
@@ -70,10 +70,14 @@ class CampaignStore:
 
     def generate_campaign_id(self, workflow_name: str) -> str:
         """
-        Generate unique campaign ID.
+        Generate unique campaign ID with collision-resistant UUID.
 
-        Format: {workflow}_{timestamp}_{short_uuid}
-        Example: campaign_20250108_123456_abc123
+        Format: {workflow}_{timestamp}_{uuid}
+        Example: campaign_20250108_123456_a1b2c3d4e5f6
+
+        Uses:
+        - Timestamp with microsecond precision (no collision within same second)
+        - 12 characters from UUID (collision probability: 1 in 16^12 = ~281 trillion)
 
         Args:
             workflow_name: Name of workflow (aeo-campaign, aeo-compete, etc.)
@@ -81,9 +85,14 @@ class CampaignStore:
         Returns:
             Unique campaign identifier
         """
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        short_uuid = str(uuid.uuid4())[:6]
-        return f"{workflow_name}_{timestamp}_{short_uuid}"
+        # Use microseconds for higher precision (no collision within same second)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S%f")[:17]  # YYYYmmdd_HHMMSS_mmm (milliseconds)
+
+        # Use 12 characters from UUID for collision resistance
+        # Collision probability: 1 in 16^12 = ~281 trillion
+        uuid_part = str(uuid.uuid4()).replace('-', '')[:12]
+
+        return f"{workflow_name}_{timestamp}_{uuid_part}"
 
     def create_campaign(
         self,
@@ -192,7 +201,7 @@ class CampaignStore:
         manifest_path = campaign_dir / "manifest.json"
 
         # Update timestamp
-        manifest.updated_at = datetime.utcnow()
+        manifest.updated_at = datetime.now(timezone.utc)
 
         # Save
         write_json(manifest_path, manifest.to_json_file())
@@ -254,7 +263,7 @@ class CampaignStore:
             # Update status
             if manifest.workflow_state.is_complete:
                 manifest.workflow_state.status = "completed"
-                manifest.workflow_state.completed_at = datetime.utcnow()
+                manifest.workflow_state.completed_at = datetime.now(timezone.utc)
 
             self.save_campaign(manifest)
 
@@ -293,6 +302,41 @@ class CampaignStore:
         data = read_json(result_path)
         return TaskResult(**data)
 
+    def _validate_filename(self, filename: str) -> str:
+        """
+        Validate filename to prevent path traversal attacks.
+
+        Args:
+            filename: Filename to validate
+
+        Returns:
+            Safe filename (basename only)
+
+        Raises:
+            ValueError: If filename contains path traversal sequences or invalid characters
+
+        Security:
+            Prevents directory traversal attacks like "../../../etc/passwd"
+        """
+        import os
+
+        # Get basename only (removes any directory components)
+        safe_filename = os.path.basename(filename)
+
+        # Check for empty filename after cleaning
+        if not safe_filename or safe_filename in ('.', '..'):
+            raise ValueError(f"Invalid filename: '{filename}'")
+
+        # Check for path traversal attempts
+        if '..' in filename or '/' in filename or '\\' in filename:
+            raise ValueError(f"Filename contains invalid path characters: '{filename}'")
+
+        # Check for null bytes (security)
+        if '\x00' in safe_filename:
+            raise ValueError(f"Filename contains null bytes: '{filename}'")
+
+        return safe_filename
+
     def save_output_file(
         self,
         campaign_id: str,
@@ -304,11 +348,14 @@ class CampaignStore:
 
         Args:
             campaign_id: Campaign identifier
-            filename: Output filename
+            filename: Output filename (will be validated for security)
             content: File content
 
         Returns:
             Path to saved file
+
+        Raises:
+            ValueError: If filename contains path traversal sequences
 
         Example:
             >>> path = store.save_output_file(
@@ -316,8 +363,15 @@ class CampaignStore:
             ...     "report.md",
             ...     "# AEO Campaign Report\\n\\n..."
             ... )
+
+        Security:
+            Filename is validated to prevent directory traversal attacks.
+            Only safe basenames are allowed (no "../" or absolute paths).
         """
-        output_path = self.campaigns_dir / campaign_id / "outputs" / filename
+        # Validate filename for security (prevent path traversal)
+        safe_filename = self._validate_filename(filename)
+
+        output_path = self.campaigns_dir / campaign_id / "outputs" / safe_filename
 
         # Write content
         output_path.write_text(content, encoding='utf-8')

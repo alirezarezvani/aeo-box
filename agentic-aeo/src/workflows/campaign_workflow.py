@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from communication.protocol import TaskMessage, AgentType
+from communication.protocol import TaskMessage, AgentType, TaskType
 
 
 class CampaignWorkflow:
@@ -34,6 +34,7 @@ class CampaignWorkflow:
 
     def decompose(
         self,
+        campaign_id: str,
         url: str,
         queries: Optional[List[str]] = None,
         mode: str = "comprehensive",
@@ -45,6 +46,7 @@ class CampaignWorkflow:
         Decompose campaign into tasks.
 
         Args:
+            campaign_id: Unique campaign identifier
             url: URL of content to optimize
             queries: Target queries (optional, will research if not provided)
             mode: Campaign mode (minimal, balanced, comprehensive)
@@ -61,6 +63,8 @@ class CampaignWorkflow:
         # Task 1: Content Audit (priority 1)
         tasks.append(TaskMessage(
             task_id=f"audit_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.AUDIT_CONTENT,
             agent_type=AgentType.AUDITOR,
             input_data={
                 "url": url,
@@ -69,9 +73,7 @@ class CampaignWorkflow:
                     "campaign_mode": mode
                 }
             },
-            priority=1,
-            depends_on=[],
-            deadline=datetime.now() + timedelta(minutes=5)
+            dependencies=[]
         ))
 
         # Task 2: Query Research (priority 1, parallel with audit)
@@ -92,16 +94,18 @@ class CampaignWorkflow:
 
         tasks.append(TaskMessage(
             task_id=f"research_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.RESEARCH_QUERIES,
             agent_type=AgentType.RESEARCHER,
             input_data=research_input,
-            priority=1,
-            depends_on=[],
-            deadline=datetime.now() + timedelta(minutes=5)
+            dependencies=[]
         ))
 
         # Task 3: Content Optimization (priority 2, depends on audit)
         tasks.append(TaskMessage(
             task_id=f"optimize_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.OPTIMIZE_CONTENT,
             agent_type=AgentType.OPTIMIZER,
             input_data={
                 "level": optimization_level,
@@ -111,28 +115,28 @@ class CampaignWorkflow:
                     "audit_task_id": f"audit_{timestamp}"  # Reference to get audit results
                 }
             },
-            priority=2,
-            depends_on=[f"audit_{timestamp}"],
-            deadline=datetime.now() + timedelta(minutes=10)
+            dependencies=[f"audit_{timestamp}"]
         ))
 
         # Task 4: Citation Tracking Setup (priority 3)
         tasks.append(TaskMessage(
             task_id=f"track_{timestamp}",
-            agent_type=AgentType.CITATION_TRACKER,
+            campaign_id=campaign_id,
+            task_type=TaskType.TRACK_CITATIONS,
+            agent_type=AgentType.TRACKER,
             input_data={
                 "url": url,
                 "queries": queries or [],  # Will be populated from research results
                 "duration_days": tracking_duration_days
             },
-            priority=3,
-            depends_on=[f"research_{timestamp}"],
-            deadline=datetime.now() + timedelta(minutes=8)
+            dependencies=[f"research_{timestamp}"]
         ))
 
         # Task 5: Report Generation (priority 4, depends on all previous)
         tasks.append(TaskMessage(
             task_id=f"report_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.GENERATE_REPORT,
             agent_type=AgentType.REPORTER,
             input_data={
                 "report_type": "campaign",
@@ -145,20 +149,20 @@ class CampaignWorkflow:
                     "research_task_id": f"research_{timestamp}"
                 }
             },
-            priority=4,
-            depends_on=[
+            dependencies=[
                 f"audit_{timestamp}",
                 f"optimize_{timestamp}",
                 f"track_{timestamp}",
                 f"research_{timestamp}"
-            ],
-            deadline=datetime.now() + timedelta(minutes=12)
+            ]
         ))
 
         # Task 6: Pattern Learning (priority 5, optional for comprehensive mode)
         if mode == "comprehensive":
             tasks.append(TaskMessage(
                 task_id=f"learn_{timestamp}",
+                campaign_id=campaign_id,
+                task_type=TaskType.LEARN_PATTERNS,
                 agent_type=AgentType.LEARNING,
                 input_data={
                     "campaign_data": {
@@ -169,9 +173,7 @@ class CampaignWorkflow:
                     },
                     "industry": industry
                 },
-                priority=5,
-                depends_on=[f"report_{timestamp}"],
-                deadline=datetime.now() + timedelta(minutes=15)
+                dependencies=[f"report_{timestamp}"]
             ))
 
         return tasks

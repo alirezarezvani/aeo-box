@@ -444,4 +444,4 @@ When implementing the multi-agent system:
 
 Refer to `aeo-agentic-app-master-prompt.md` for complete implementation requirements.
 
-**Remember**: Answer always honest, No fluff. Stay focused and solution driven. Break bigger tasks into smaller and create always a todolist before starting the work.  
+**Remember**: Answer always honest, No fluff. Stay focused and solution driven. Break bigger tasks into smaller and create always a todolist before starting the work. Use always the {{current_date}} in all documents.

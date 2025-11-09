@@ -7,7 +7,7 @@ Includes retry logic, timeout handling, input validation, and logging integratio
 
 import asyncio
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from ..communication.protocol import (
     TaskMessage,
@@ -139,7 +139,7 @@ class BaseAgent(ABC):
             >>> print(result.status)  # COMPLETED or FAILED
         """
         retries = max_retries if max_retries is not None else self.max_retries
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
 
         # Set logger context
         self.logger.set_context(
@@ -163,7 +163,7 @@ class BaseAgent(ABC):
                 )
 
                 # Calculate execution time
-                completed_at = datetime.utcnow()
+                completed_at = datetime.now(timezone.utc)
                 execution_time = (completed_at - started_at).total_seconds()
 
                 # Create successful result
@@ -290,7 +290,7 @@ class BaseAgent(ABC):
         Returns:
             TaskResult with FAILED status
         """
-        completed_at = datetime.utcnow()
+        completed_at = datetime.now(timezone.utc)
         execution_time = (completed_at - started_at).total_seconds()
 
         # Log failure
@@ -416,7 +416,7 @@ if __name__ == "__main__":
             return {
                 "score": 85,
                 "analysis": "Content analyzed successfully",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     # Test the agent

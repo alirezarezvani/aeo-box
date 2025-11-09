@@ -7,7 +7,7 @@ and quality validation for AEO workflows.
 
 import asyncio
 from typing import Dict, List, Any, Optional, Set
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .base_agent import BaseAgent
 from ..communication.protocol import (
@@ -136,7 +136,7 @@ class OrchestratorAgent(BaseAgent):
         )
 
         self.logger.workflow_start(workflow_name, campaign_id, **parameters)
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
         # Execute tasks with dependency management
         results = await self._execute_tasks_with_dependencies(campaign_id, tasks)
@@ -145,7 +145,7 @@ class OrchestratorAgent(BaseAgent):
         manifest = self.campaign_store.load_campaign(campaign_id)
 
         # Calculate duration
-        end_time = datetime.utcnow()
+        end_time = datetime.now(timezone.utc)
         duration = (end_time - start_time).total_seconds()
 
         # Determine final status
@@ -223,7 +223,7 @@ class OrchestratorAgent(BaseAgent):
         Returns:
             List of tasks with dependencies
         """
-        campaign_id = f"temp_{datetime.utcnow().timestamp()}"
+        campaign_id = f"temp_{datetime.now(timezone.utc).timestamp()}"
         tasks = []
 
         # Task 1: Audit content
@@ -319,7 +319,7 @@ class OrchestratorAgent(BaseAgent):
         Returns:
             List of tasks
         """
-        campaign_id = f"temp_{datetime.utcnow().timestamp()}"
+        campaign_id = f"temp_{datetime.now(timezone.utc).timestamp()}"
         tasks = []
         audit_task_ids = []
 
@@ -375,7 +375,7 @@ class OrchestratorAgent(BaseAgent):
         Returns:
             List of tasks
         """
-        campaign_id = f"temp_{datetime.utcnow().timestamp()}"
+        campaign_id = f"temp_{datetime.now(timezone.utc).timestamp()}"
         tasks = []
 
         # Task 1: Track citations
@@ -515,8 +515,8 @@ class OrchestratorAgent(BaseAgent):
                     status=TaskStatus.FAILED,
                     agent_type=task.agent_type,
                     error_message=str(result),
-                    started_at=datetime.utcnow(),
-                    completed_at=datetime.utcnow(),
+                    started_at=datetime.now(timezone.utc),
+                    completed_at=datetime.now(timezone.utc),
                 )
                 final_results.append(error_result)
             else:

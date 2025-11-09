@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from communication.protocol import TaskMessage, AgentType
+from communication.protocol import TaskMessage, AgentType, TaskType
 
 
 class CompetitiveWorkflow:
@@ -33,6 +33,7 @@ class CompetitiveWorkflow:
 
     def decompose(
         self,
+        campaign_id: str,
         topic: str,
         competitor_urls: List[str],
         region: str = "US",
@@ -42,6 +43,7 @@ class CompetitiveWorkflow:
         Decompose competitive analysis into tasks.
 
         Args:
+            campaign_id: Unique campaign identifier
             topic: Topic or industry to analyze
             competitor_urls: List of competitor URLs to analyze (1-5 URLs)
             region: Geographic region for queries
@@ -60,6 +62,8 @@ class CompetitiveWorkflow:
         # Task 1: Query Research for topic (priority 1)
         tasks.append(TaskMessage(
             task_id=f"research_topic_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.RESEARCH_QUERIES,
             agent_type=AgentType.RESEARCHER,
             input_data={
                 "topic": topic,
@@ -67,9 +71,7 @@ class CompetitiveWorkflow:
                 "include_competitors": True,
                 "competitor_urls": competitor_urls
             },
-            priority=1,
-            depends_on=[],
-            deadline=datetime.now() + timedelta(minutes=5)
+            dependencies=[],
         ))
 
         # Task 2: Competitor Content Audits (priority 2, parallel)
@@ -80,6 +82,8 @@ class CompetitiveWorkflow:
 
             tasks.append(TaskMessage(
                 task_id=audit_task_id,
+                campaign_id=campaign_id,
+                task_type=TaskType.AUDIT_CONTENT,
                 agent_type=AgentType.AUDITOR,
                 input_data={
                     "url": url,
@@ -89,29 +93,29 @@ class CompetitiveWorkflow:
                         "total_competitors": len(competitor_urls)
                     }
                 },
-                priority=2,
-                depends_on=[],
-                deadline=datetime.now() + timedelta(minutes=10)
+                dependencies=[],
             ))
 
         # Task 3: Citation Analysis (priority 3, depends on research)
         if include_citations:
             tasks.append(TaskMessage(
                 task_id=f"citations_{timestamp}",
-                agent_type=AgentType.CITATION_TRACKER,
+                campaign_id=campaign_id,
+                task_type=TaskType.TRACK_CITATIONS,
+                agent_type=AgentType.TRACKER,
                 input_data={
                     "urls": competitor_urls,
                     "queries": [],  # Will be populated from research results
                     "analysis_type": "comparative"
                 },
-                priority=3,
-                depends_on=[f"research_topic_{timestamp}"],
-                deadline=datetime.now() + timedelta(minutes=12)
+                dependencies=[f"research_topic_{timestamp}"],
             ))
 
         # Task 4: Gap Analysis (priority 4, depends on audits + research)
         tasks.append(TaskMessage(
             task_id=f"gap_analysis_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.ANALYZE_COMPETITORS,
             agent_type=AgentType.RESEARCHER,
             input_data={
                 "topic": topic,
@@ -119,9 +123,7 @@ class CompetitiveWorkflow:
                 "audit_task_ids": audit_task_ids,
                 "research_task_id": f"research_topic_{timestamp}"
             },
-            priority=4,
-            depends_on=[f"research_topic_{timestamp}"] + audit_task_ids,
-            deadline=datetime.now() + timedelta(minutes=15)
+            dependencies=[f"research_topic_{timestamp}"] + audit_task_ids,
         ))
 
         # Task 5: Strategy Report (priority 5, depends on all)
@@ -131,6 +133,8 @@ class CompetitiveWorkflow:
 
         tasks.append(TaskMessage(
             task_id=f"report_{timestamp}",
+            campaign_id=campaign_id,
+            task_type=TaskType.GENERATE_REPORT,
             agent_type=AgentType.REPORTER,
             input_data={
                 "report_type": "competitive",
@@ -143,9 +147,7 @@ class CompetitiveWorkflow:
                     "citations_task_id": f"citations_{timestamp}" if include_citations else None
                 }
             },
-            priority=5,
-            depends_on=report_dependencies,
-            deadline=datetime.now() + timedelta(minutes=18)
+            dependencies=report_dependencies,
         ))
 
         return tasks

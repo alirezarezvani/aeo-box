@@ -5,7 +5,7 @@ Defines message formats for orchestrator-agent communication using Pydantic.
 Implements JSON + Markdown hybrid format for structured data and human-readable content.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field, field_validator
@@ -110,7 +110,7 @@ class TaskMessage(BaseModel):
 
     # Metadata
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Task creation timestamp"
     )
     timeout_seconds: Optional[int] = Field(
@@ -170,11 +170,11 @@ class TaskResult(BaseModel):
 
     # Timestamps
     started_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Task start timestamp"
     )
     completed_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Task completion timestamp"
     )
 
@@ -217,7 +217,7 @@ class RevisionRequest(BaseModel):
         description="Revision attempt number"
     )
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Revision request timestamp"
     )
 
@@ -270,7 +270,7 @@ class ValidationResult(BaseModel):
 
     # Metadata
     validated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Validation timestamp"
     )
 
@@ -419,11 +419,11 @@ class CampaignManifest(BaseModel):
 
     # Timestamps
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Campaign creation timestamp"
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Last update timestamp"
     )
 

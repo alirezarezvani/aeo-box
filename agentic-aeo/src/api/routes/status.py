@@ -25,6 +25,10 @@ async def get_workflow_status(workflow_id: str):
     Retrieves the current status of any workflow (campaign, competitive analysis,
     or monitoring setup).
 
+    ⚠️ **DATA LOSS WARNING**: Workflow status is stored IN-MEMORY ONLY.
+    All campaign data is LOST on API restart. For production use with persistence,
+    use the CampaignStore filesystem storage or migrate to a database (planned v1.6).
+
     **Parameters:**
     - workflow_id: Campaign ID, analysis ID, or monitor ID
 

@@ -8,9 +8,57 @@ Supports file and stdout output with configurable levels.
 import logging
 import json
 import sys
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import Optional, Any, Dict
 from pathlib import Path
+
+
+def redact_sensitive_data(data: Any) -> Any:
+    """
+    Redact sensitive data (API keys, tokens, passwords) from log output.
+
+    Prevents accidental exposure of credentials in logs by replacing them
+    with [REDACTED] placeholders.
+
+    Args:
+        data: Log data (string, dict, list, or other)
+
+    Returns:
+        Data with sensitive information redacted
+
+    Security:
+        Redacts common API key patterns:
+        - Anthropic keys (sk-ant-...)
+        - OpenAI keys (sk-...)
+        - Generic API tokens (Bearer ...)
+        - Passwords (password=...)
+    """
+    # Patterns to redact (API keys, tokens, passwords)
+    patterns = [
+        (r'(sk-ant-api\d+-[\w-]+)', '[REDACTED-ANTHROPIC-KEY]'),
+        (r'(sk-[\w]{48,})', '[REDACTED-OPENAI-KEY]'),
+        (r'(Bearer\s+[\w-]+)', 'Bearer [REDACTED-TOKEN]'),
+        (r'(api_key["\']?\s*[:=]\s*["\']?)[\w-]+', r'\1[REDACTED]'),
+        (r'(password["\']?\s*[:=]\s*["\']?)[^\s"\']+', r'\1[REDACTED]'),
+        (r'(ANTHROPIC_API_KEY["\']?\s*[:=]\s*["\']?)[\w-]+', r'\1[REDACTED]'),
+        (r'(OPENAI_API_KEY["\']?\s*[:=]\s*["\']?)[\w-]+', r'\1[REDACTED]'),
+    ]
+
+    if isinstance(data, str):
+        # Redact from string
+        for pattern, replacement in patterns:
+            data = re.sub(pattern, replacement, data, flags=re.IGNORECASE)
+        return data
+    elif isinstance(data, dict):
+        # Redact from dictionary values
+        return {k: redact_sensitive_data(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        # Redact from list items
+        return [redact_sensitive_data(item) for item in data]
+    else:
+        # Return unchanged for other types
+        return data
 
 
 class JSONFormatter(logging.Formatter):
@@ -27,7 +75,7 @@ class JSONFormatter(logging.Formatter):
             JSON-formatted log string
         """
         log_data = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -48,6 +96,9 @@ class JSONFormatter(logging.Formatter):
         # Add any extra fields
         if hasattr(record, "extra_fields"):
             log_data.update(record.extra_fields)
+
+        # Redact sensitive data (API keys, tokens, passwords) before logging
+        log_data = redact_sensitive_data(log_data)
 
         return json.dumps(log_data)
 

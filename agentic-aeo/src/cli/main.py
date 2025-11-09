@@ -29,6 +29,12 @@ def cli(ctx, verbose, data_dir):
     Claude, Gemini, Mistral) using automated multi-agent workflows.
 
     \b
+    ⚠️  PROGRESS LIMITATION (v1.5):
+    CLI does NOT show real-time progress during campaign execution. Campaigns
+    run silently and may take 15-90 minutes depending on mode. Use --verbose
+    for additional logging. Real-time progress bars planned for v1.6.
+
+    \b
     Available Commands:
       campaign    Run complete AEO campaign
       compete     Competitive AEO analysis
