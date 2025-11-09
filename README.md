@@ -279,7 +279,7 @@ aeo-box/
 
 **Target Release**: November 11, 2025 (2 days remaining)
 
-### 🔮 v2.0 (Q2-Q4 2025) - Advanced Features
+### 🔮 v2.0 (Q4 2025) - Advanced Features
 - [ ] Visual citation heatmaps
 - [ ] Browser extension (real-time tracking)
 - [ ] Slack/Email notifications
